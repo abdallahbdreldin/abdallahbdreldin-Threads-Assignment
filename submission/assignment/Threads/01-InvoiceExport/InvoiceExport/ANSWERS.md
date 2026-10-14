@@ -8,7 +8,7 @@ Group / ID:  net/g-1
 
  export finished in almost 6 seconds
 
- ![Synchronous Output](screenshots/async-in-6-seconds.png)
+ ![Synchronous Output](screenshots/sync-in-6-seconds.png)
 -
 
 ## What you changed
