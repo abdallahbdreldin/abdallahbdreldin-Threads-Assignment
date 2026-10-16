@@ -5,9 +5,9 @@ Group / ID: net/g-1
 
 ## What is wrong
 
-- when many users tryig to book the same seat at the same time, it causes a race condition and leads to overbooking.
+- when many users trying to book the same seat at the same time, it causes a race condition and leads to overbooking.
 
-![Without Lock](screenshots/withoutlock.png)
+![Without Lock](screenshots/withoutLock.png)
 
 ## How you fixed it
 
