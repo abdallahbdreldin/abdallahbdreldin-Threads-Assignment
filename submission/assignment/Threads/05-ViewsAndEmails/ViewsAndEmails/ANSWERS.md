@@ -8,10 +8,11 @@ Group / ID: net/g-1
 	- when many threads are trying to access the same collection,
 	 it can lead to duplicated key exception because of race conditions.
 
-	 ![Duplicated Key Exception](screenshots/duplicatedKey Exception.png)
+![Duplicated Key Exception](screenshots/duplicatedKeyException.png)
 
 	- even when using concurrent collections, it can lead to business-rule violations as result of lost updates, so the expected and actual may still be different.
-	 ![Race Condition](screenshots/raceCondition.png)
+
+![Race Condition](screenshots/raceCondition.png)
 
 ## What you changed
 
@@ -19,7 +20,7 @@ Group / ID: net/g-1
 	- using try.addorupdate to handle lost updates and avoid business-rule violations.
 	- using tasks instead of threads to avoid thread blocking.
 
-	![Atomic Operations](screenshots/atomic.png)
+![Atomic Operations](screenshots/Atomic.png)
 
 ## Collection safety vs business-rule safety
 
