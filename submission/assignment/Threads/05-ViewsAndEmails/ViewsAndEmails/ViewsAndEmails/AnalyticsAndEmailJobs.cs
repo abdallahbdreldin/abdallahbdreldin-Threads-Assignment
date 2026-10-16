@@ -1,9 +1,11 @@
+using System.Collections.Concurrent;
+
 namespace ViewsAndEmails;
 
 public sealed class AnalyticsAndEmailJobs
 {
-    public readonly Dictionary<string, int> Views = new();
-    public readonly Queue<string> EmailJobs = new();
+    public readonly ConcurrentDictionary<string, int> Views = new();
+    public readonly ConcurrentQueue<string> EmailJobs = new();
     public readonly List<string> SentEmails = new();
 
     readonly object _sentSync = new();
@@ -11,10 +13,10 @@ public sealed class AnalyticsAndEmailJobs
 
     public void RecordView(string product)
     {
-        if (!Views.ContainsKey(product))
-            Views.Add(product, 0);
-
-        Views[product] = Views[product] + 1;
+        Views.AddOrUpdate(
+            product,
+            1,
+            (_, oldValue) => oldValue + 1);
     }
 
     public void PlaceOrder(int orderId)
@@ -22,34 +24,23 @@ public sealed class AnalyticsAndEmailJobs
         EmailJobs.Enqueue($"Email: order {orderId}");
     }
 
-    public void EmailWorker()
+    public async Task EmailWorker()
     {
-        while (true)
-        {
-            try
+         while (true)
+         {
+            if (EmailJobs.TryDequeue(out string? job))
             {
-                string? job = null;
-                if (EmailJobs.Count > 0)
-                    job = EmailJobs.Dequeue();
-
-                if (job is not null)
+                lock (_sentSync)
                 {
-                    lock (_sentSync)
-                        SentEmails.Add(job);
-                    continue;
+                    SentEmails.Add(job);
                 }
+                continue;
+            }
 
-                if (ProducersDone && EmailJobs.Count == 0)
+            if (ProducersDone)
                     return;
 
-                Thread.Sleep(1);
-            }
-            catch (InvalidOperationException)
-            {
-                Console.WriteLine("InvalidOperationException");
-                if (ProducersDone)
-                    return;
-            }
-        }
+                await Task.Delay(1);
+         }
     }
 }

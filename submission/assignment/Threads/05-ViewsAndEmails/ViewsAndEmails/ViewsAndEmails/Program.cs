@@ -2,38 +2,32 @@ using ViewsAndEmails;
 
 var hub = new AnalyticsAndEmailJobs();
 
-Thread[] viewers = new Thread[10];
+Task[] viewers = new Task[10];
 for (int t = 0; t < viewers.Length; t++)
 {
-    viewers[t] = new Thread(() =>
+    viewers[t] = Task.Run(() =>
     {
         for (int i = 0; i < 5_000; i++)
             hub.RecordView("koshary-bowl");
     });
-    viewers[t].Start();
 }
 
-Thread[] producers = new Thread[20];
+Task[] producers = new Task[20];
 for (int i = 0; i < producers.Length; i++)
 {
     int id = i + 1;
-    producers[i] = new Thread(() => hub.PlaceOrder(id));
-    producers[i].Start();
+    producers[i] = Task.Run(() => hub.PlaceOrder(id));
 }
 
-Thread w1 = new(hub.EmailWorker);
-Thread w2 = new(hub.EmailWorker);
-w1.Start();
-w2.Start();
+Task w1 = hub.EmailWorker();
+Task w2 = hub.EmailWorker();
 
-foreach (Thread t in viewers)
-    t.Join();
-foreach (Thread t in producers)
-    t.Join();
+await Task.WhenAll(viewers);
+await Task.WhenAll(producers);
 
 hub.ProducersDone = true;
-w1.Join();
-w2.Join();
+
+await Task.WhenAll(w1, w2);
 
 int viewExpected = 10 * 5_000;
 int viewActual = hub.Views.TryGetValue("koshary-bowl", out int v) ? v : 0;
