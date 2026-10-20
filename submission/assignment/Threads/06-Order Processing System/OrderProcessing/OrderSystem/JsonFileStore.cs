@@ -3,10 +3,11 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
 using OrderSystem.Exceptions;
+using OrderSystem.Interfaces.IJsonFile;
 
 namespace OrderSystem
 {
-    public sealed class JsonFileStore
+    public sealed class JsonFileStore : IJsonFileStore
     {
         private static readonly ConcurrentDictionary<string, SemaphoreSlim> FileLocks = new(StringComparer.OrdinalIgnoreCase);
 

@@ -1,6 +1,14 @@
 namespace OrderSystem.Models
 {
-    public enum OrderStatus { Pending, Validated, Rejected, PaymentFailed, Completed, Failed }
+    public enum OrderStatus 
+    {
+        Pending,
+        Validated,
+        Rejected,
+        PaymentFailed,
+        Completed,
+        Failed
+    }
     public sealed class Order
     {
         public int Id { get; set; }

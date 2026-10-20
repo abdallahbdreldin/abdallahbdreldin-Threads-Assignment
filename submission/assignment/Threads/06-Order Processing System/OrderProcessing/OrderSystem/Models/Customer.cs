@@ -1,6 +1,10 @@
 namespace OrderSystem.Models
 {
-    public enum LoyaltyTier { Bronze, Silver, Gold }
+    public enum LoyaltyTier {
+        Bronze,
+        Silver,
+        Gold
+    }
     public sealed class Customer
     {
         public int Id { get; set; }

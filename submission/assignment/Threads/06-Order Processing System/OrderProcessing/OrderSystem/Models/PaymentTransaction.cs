@@ -1,6 +1,10 @@
 namespace OrderSystem.Models
 {
-    public enum PaymentStatus { Captured, Declined, Refunded }
+    public enum PaymentStatus {
+        Captured,
+        Declined,
+        Refunded 
+    }
     public sealed class PaymentTransaction
     {
         public int OrderId { get; set; }
