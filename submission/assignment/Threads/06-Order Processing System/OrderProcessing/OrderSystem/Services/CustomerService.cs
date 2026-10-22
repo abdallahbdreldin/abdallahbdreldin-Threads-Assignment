@@ -10,7 +10,7 @@ namespace OrderSystem.Services
 
         public CustomerService(ICustomerRepository customerRepository)
         {
-            _customerRepository = customerRepository;
+            _customerRepository = customerRepository ?? throw new ArgumentNullException(nameof(customerRepository));
         }
 
         public async Task<Customer> GetCustomerAsync(int id, CancellationToken ct)

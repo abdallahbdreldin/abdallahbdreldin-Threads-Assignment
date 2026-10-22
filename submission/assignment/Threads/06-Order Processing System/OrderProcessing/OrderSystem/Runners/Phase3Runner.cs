@@ -4,6 +4,7 @@ using OrderSystem.Logs;
 using OrderSystem.Models;
 using OrderSystem.Repositories;
 using OrderSystem.Services;
+using System.Diagnostics;
 
 namespace OrderSystem.Runners
 {
@@ -108,6 +109,62 @@ namespace OrderSystem.Runners
             Console.WriteLine($"orders.json contains {savedOrders.Count} records (expected 20).");
             if (savedOrders.Count != 20)
                 throw new InvalidOperationException($"Expected 20 saved orders, found {savedOrders.Count}.");
+        }
+
+        public async Task RunLiveCheckoutAsync(CancellationToken ct)
+        {
+            await _seeder.ResetAsync(ct);
+            List<Order> orders = await _incomingOrderRepository.GetAllAsync(ct);
+            var orderByTask = new Dictionary<Task<bool>, (Order Order, Stopwatch Stopwatch)>();
+
+            foreach (Order order in orders)
+            {
+                ct.ThrowIfCancellationRequested();
+                var stopwatch = Stopwatch.StartNew();
+                Task<bool> task = _orderProcessor.ProcessOrderAsync(order, ct);
+                orderByTask.Add(task, (order, stopwatch));
+            }
+
+            int completed = 0;
+            bool wasCancelled = false;
+            await foreach (Task<bool> completedTask in Task.WhenEach(orderByTask.Keys))
+            {
+                (Order order, Stopwatch stopwatch) = orderByTask[completedTask];
+                try
+                {
+                    await completedTask;
+                }
+                catch (OperationCanceledException) when (ct.IsCancellationRequested)
+                {
+                    wasCancelled = true;
+                }
+                catch (Exception exception)
+                {
+                    Log.Error($"Order #{order.Id} escaped processing: {exception.Message}");
+                    order.Status = OrderStatus.Failed;
+                    order.FailureReason = exception.Message;
+                    await _orderRepository.SaveAsync(order, CancellationToken.None);
+                }
+
+                stopwatch.Stop();
+                completed++;
+                string reason = string.IsNullOrWhiteSpace(order.FailureReason) ? string.Empty : $" ({order.FailureReason})";
+                Console.WriteLine($"[{completed,2}/20] Order #{order.Id} -> {order.Status}{reason} after {stopwatch.Elapsed.TotalSeconds:F1} s");
+            }
+
+            List<Order> savedOrders = await _orderRepository.GetAllAsync(CancellationToken.None);
+            PrintStatusCounts(savedOrders);
+            if (savedOrders.Count != 20)
+                throw new InvalidOperationException($"Expected 20 saved orders, found {savedOrders.Count}.");
+            if (wasCancelled)
+                throw new OperationCanceledException(ct);
+        }
+
+        private static void PrintStatusCounts(IEnumerable<Order> orders)
+        {
+            Console.WriteLine("Order counts by status:");
+            foreach (var group in orders.GroupBy(order => order.Status).OrderBy(group => group.Key))
+                Console.WriteLine($"  {group.Key}: {group.Count()}");
         }
     }
 }

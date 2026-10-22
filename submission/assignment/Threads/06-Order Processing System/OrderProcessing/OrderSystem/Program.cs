@@ -8,13 +8,13 @@ namespace OrderSystem
         {
             if (!TryReadCancelAfter(args, out int? cancelAfterMs))
             {
-                Console.Error.WriteLine("Usage: dotnet run -- [phase1|phase2|phase3] [--cancel-after <ms>]");
+                Console.Error.WriteLine("Usage: dotnet run -- [phase1|phase2|phase3|phase4] [--cancel-after <ms>]");
                 return 1;
             }
 
             if (HasUnsupportedArguments(args))
             {
-                Console.Error.WriteLine("Only phase1, phase2 and phase3 are implemented in this project state.");
+                Console.Error.WriteLine("Only phase1, phase2, phase3 and phase4 are implemented in this project state.");
                 return 1;
             }
 
@@ -32,7 +32,7 @@ namespace OrderSystem
             try
             {
                 var jsonFileStore = new JsonFileStore();
-                string phase = args.FirstOrDefault(argument => argument is "phase1" or "phase2" or "phase3") ?? "phase1";
+                string phase = args.FirstOrDefault(argument => argument is "phase1" or "phase2" or "phase3" or "phase4") ?? "phase1";
 
                 if (phase == "phase2")
                 {
@@ -42,6 +42,11 @@ namespace OrderSystem
                 else if (phase == "phase3")
                 {
                     var runner = new Phase3Runner(jsonFileStore);
+                    await runner.RunAsync(cts.Token);
+                }
+                else if (phase == "phase4")
+                {
+                    var runner = new Phase4Runner(jsonFileStore);
                     await runner.RunAsync(cts.Token);
                 }
                 else
@@ -83,7 +88,7 @@ namespace OrderSystem
             bool phaseWasSpecified = false;
             for (int i = 0; i < args.Length; i++)
             {
-                if ((args[i] is "phase1" or "phase2" or "phase3") && !phaseWasSpecified)
+                if ((args[i] is "phase1" or "phase2" or "phase3" or "phase4") && !phaseWasSpecified)
                 {
                     phaseWasSpecified = true;
                     continue;

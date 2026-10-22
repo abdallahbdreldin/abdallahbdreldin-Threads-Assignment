@@ -43,6 +43,7 @@ namespace OrderSystem.Services
                 try
                 {
                     await SendAttemptAsync(order.Id, attempt, configuredFailures, ct);
+
                     email.Attempts = attempt;
                     email.LastError = null;
                     email.SentAt = DateTime.Now;
@@ -79,8 +80,10 @@ namespace OrderSystem.Services
         {
             Log.Info($"{nameof(EmailService)} -> Order #{orderId} rendering email template (attempt {attempt})...");
             await Task.Delay(200, ct);
+
             Log.Info($"{nameof(EmailService)} -> Order #{orderId} connecting to SMTP...");
             await Task.Delay(300, ct);
+
             Log.Info($"{nameof(EmailService)} -> Order #{orderId} sending email...");
             await Task.Delay(500, ct);
 

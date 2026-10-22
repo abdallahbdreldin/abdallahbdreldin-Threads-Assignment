@@ -85,6 +85,7 @@ namespace OrderSystem.Services
             await _jsonFileStore.UpdateAsync<List<PaymentTransaction>>(DataFiles.Payments, payments =>
             {
                 PaymentTransaction? payment = payments.FirstOrDefault(candidate => candidate.TransactionId == transactionId);
+
                 if (payment is not null && payment.Status == PaymentStatus.Captured)
                 {
                     payment.Status = PaymentStatus.Refunded;

@@ -1,3 +1,116 @@
+# Order Processing System 
+
+## Run the phases
+
+From the repository root:
+
+```powershell
+cd OrderProcessing\OrderSystem
+dotnet run -- phase1
+dotnet run -- phase2
+dotnet run -- phase3
+dotnet run -- phase4
+```
+
+To demonstrate cancellation, pass a delay in milliseconds after the phase name, for example:
+
+```powershell
+dotnet run -- phase3 --cancel-after 1500
+```
+
+The current program defaults to `phase1` when no phase argument is supplied. The assignment also asks for a numbered menu; that menu is not currently implemented.
+
+`JsonFileStore` creates its data directory at `AppContext.BaseDirectory\Data`. With the commands above, this is normally `OrderProcessing\OrderSystem\bin\Debug\net10.0\Data` (or the corresponding configuration directory, such as `Release`). `DataSeeder.ResetAsync()` recreates the sample data before a phase that resets its state.
+
+## Project structure and class roles
+
+| File/class | Role |
+|---|---|
+| `Program` | Parses the phase/cancellation arguments and starts the matching runner. |
+| `JsonFileStore`, `IJsonFileStore` | JSON persistence API with synchronous and asynchronous operations. |
+| `DataFiles` | Central names for all JSON data files. |
+| `DataSeeder` | Recreates the initial sample data for a phase run. |
+| `Customer`, `LoyaltyTier` | Customer profile and loyalty level. |
+| `Product` | Product name, price, stock, and shipping weight. |
+| `Coupon` | Coupon code, percentage discount, and expiration. |
+| `Order`, `OrderItem`, `OrderStatus` | Order data, line items, and processing state. |
+| `PaymentResult`, `PaymentTransaction`, `PaymentStatus` | Gateway response and persisted payment state. |
+| `EmailMessage` | Confirmation email content, delivery attempts, and retry error. |
+| `Report` | Aggregated order and sales statistics. |
+| `CustomerDashboard` | Customer profile plus associated orders, payments, and emails. |
+| `ShippingQuote` | Chosen carrier, price, and response duration. |
+| `CustomerRepository`, `ProductRepository`, `CouponRepository` | Asynchronously load customer, product, and coupon data. |
+| `IncomingOrderRepository`, `OrderRepository` | Read seeded incoming orders and persist processed orders. |
+| `SyncCustomerRepository`, `SyncProductRepository`, `SyncCouponRepository` | Synchronous data access for Phase 1 comparison. |
+| `ICustomerRepository`, `IProductRepository`, `ICouponRepository`, `IIncomingOrderRepository`, `IOrderRepository` | Repository contracts used by validation and order processing. |
+| `RepositoryLatency`, `SyncRepositoryLatency` | Simulated asynchronous and blocking repository delays. |
+| `SyncOrderValidator`, `OrderValidator` | Synchronous and asynchronous order validation. |
+| `CustomerService` | Loads a customer or raises `CustomerNotFoundException`. |
+| `InventoryService`, `ReserveStock` | Reserve and release inventory; `ReserveStock` also supports Phase 2 safe/unsafe race demonstrations. |
+| `PricingService`, `OrderPricer` | Compute product subtotal, discount, shipping, and total; `OrderPricer` compares sequential and concurrent pricing. |
+| `IPaymentGateway`, `PaymentGateway` | Simulate payment authorization, fraud checks, capture, and refunds. |
+| `IEmailService`, `EmailService` | Send confirmation emails and retry transient SMTP failures. |
+| `OrderProcessor`, `OrderProcessorV2` | Process checkout workflows for Phases 3 and 2, respectively. |
+| `InvoiceGenerator` | Generate invoice output for completed Phase 2 orders. |
+| `ReportGenerator` | Build the Phase 2 sales report. |
+| `CustomerDashboardService` | Concurrently load the four customer dashboard data sets. |
+| `IShippingCarrier`, `ShippingCarrier` | Carrier quote contract and simulated carrier implementation. |
+| `ShippingQuoteService` | Select the first successful carrier quote or return the timeout flat rate. |
+| `Phase1Runner`, `Phase2Runner`, `Phase3Runner`, `Phase4Runner` | Configure and execute each phase’s demonstrations. |
+| `RaceConditionDemo`, `PricingComparisonDemo` | Phase 2 stock race/release and sequential-versus-concurrent pricing demonstrations. |
+| `Log` | Timestamped, thread-labelled console logging. |
+| `CustomerNotFoundException`, `InvalidCouponException`, `ShippingProviderUnavailableException`, `DatabaseWriteException`, `SmtpUnavailableException`, `DataFileCorruptedException` | Report expected domain, provider, persistence, and JSON errors. |
+
+## Storage design
+
+The store uses `System.Text.Json` with camelCase property names, indented output, and enums serialized as strings.
+A collection is stored as a JSON array; for example, `orders.json` contains objects with fields such as `id`, `customerId`, `items`, `couponCode`, `totalAmount`, `status`, `failureReason`, and `transactionId`.
+
+| File | Contents |
+|---|---|
+| `customers.json` | Customer profiles and loyalty tiers. |
+| `products.json` | Product prices, stock, and weight. |
+| `coupons.json` | Coupon codes, discounts, and expiry dates. |
+| `incoming_orders.json` | Seed orders to process. |
+| `orders.json` | Orders and their processing state. |
+| `payments.json` | Captured, declined, and refunded payment transactions. |
+| `emails.json` | Successfully sent confirmation emails. |
+| `email_retry.json` | Emails that exhausted their retry attempts. |
+
+`JsonFileStore` keeps a process-wide `SemaphoreSlim` for each full file path. Reads and writes to a file take its gate. `UpdateAsync` holds the gate for the entire read–modify–write operation, preventing concurrent updates from overwriting each other. Writes are serialized to a temporary file and then moved over the target file. This protects concurrent access within this application process; it is not a cross-process file lock.
+
+
+## Console screenshots
+
+### Phase 1
+
+The screenshots below show the sync and async thread behavior and the phase summary graphic.
+
+![Phase 1 synchronous operations](screenshots/SampleSyncOperations.png)
+![Phase 1 asynchronous operations](screenshots/SampleAsyncOperations.png)
+![Phase 1 summary](screenshots/summary.png)
+
+### Phase 2 and race-condition demo
+
+![Unsafe stock reservation](screenshots/phase2-unsafe-reservation.png)
+![Safe stock reservation](screenshots/phase2-safe-reservation.png)
+![Stock release](screenshots/phase2-release-demo.png)
+![Phase 2 report](screenshots/phase2-report.png)
+
+### Phase 3 checkout
+
+This capture shows the payment timeout for order #5, the refund/failed-save outcome for order #13, and the final order statuses. The second capture shows the status totals.
+
+![Phase 3 checkout report](screenshots/phase3-checkout-report.png)
+![Phase 3 status counts](screenshots/phase3-status-counts.png)
+
+### Phase 4
+
+The supplied captures show the shipping quote, fraud scoring, and email resend tasks.
+
+![Phase 4 shipping and fraud scoring](screenshots/phase4-shipping-fraud.png)
+![Phase 4 email resend](screenshots/phase4-email-resend.png)
+
 ## Json File Store Design
 
 # Overview
@@ -123,4 +236,27 @@ the method suspended at await and the thread that was executing the method can r
 
 4) because there is no need to occupy the threads with just waiting calling database respone , async/await for I/O bound
  allow threads to do other work until task finishes.
+
+
+## Phase 4 questions
+
+1. Task 10.1 uses `Task.WhenEach` to print each checkout as it finishes.
+ Task 10.2 uses `Task.WhenAll` to run the four dashboard loads together.
+ Task 10.3 uses `Task.WhenAny` to choose the first successful shipping quote and continue after failed carriers.
+ Task 10.4A uses `Parallel.ForEach` for CPU-bound scoring;
+ 10.4B uses `Parallel.ForEachAsync` for concurrent email I/O.
+
+2.  Awaiting `Task.WhenAll(...)` throws when a load fails.
+	Inspecting each faulted task’s `Exception` exposes every failure;
+	the dashboard reports both the missing customer and payments timeout for customer #99.
+
+3. Without cancellation, slower carriers keep waiting and doing work after a quote has been selected or the timeout has returned a flat rate.
+
+4. Fraud scoring spends CPU time calculating each score, so multiple cores can calculate different orders at once.
+  Email sending mostly waits for rendering and SMTP I/O,
+  so asynchronous concurrency improves throughput without needing more CPU cores.
+
+5. Task 10.4A runs CPU calculations in parallel across multiple threads.
+  Task 10.1 starts asynchronous order workflows concurrently;
+  while they wait for file and service I/O, their threads can do other work.
 
