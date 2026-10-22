@@ -4,8 +4,8 @@ public sealed class MenuViewCounter
 {
     public int Views;
 
-    public void RegisterView()
+    public async Task RegisterView()
     {
-        Views++;
+        Interlocked.Increment(ref Views);
     }
 }

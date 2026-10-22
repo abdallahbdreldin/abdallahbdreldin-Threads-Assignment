@@ -15,21 +15,28 @@ public sealed class InvoiceExportService
         _invoices = invoices;
     }
 
-    public void ExportAllPending()
+    public async Task ExportAllPendingAsync()
     {
         var watch = Stopwatch.StartNew();
-        List<Order> orders = _db.GetPendingOrders();
+        List<Order> orders = await _db.GetPendingOrdersAsync();
+        var tasks = new List<Task>();
 
         foreach (Order order in orders)
         {
-            Order fresh = _db.GetOrderById(order.Id)
-                ?? throw new InvalidOperationException($"Order {order.Id} missing");
-
-            CustomerProfile customer = _customers.ReadProfile(fresh.CustomerId);
-            string path = _invoices.WriteInvoice(fresh, customer);
-            Console.WriteLine($"Wrote {path}");
+            tasks.Add(ExportOrderAsync(order));
         }
 
+        await Task.WhenAll(tasks);
         Console.WriteLine($"Export finished in {watch.Elapsed.TotalSeconds:F1} s");
+    }
+
+    private async Task ExportOrderAsync(Order order)
+    {
+        Order fresh = await _db.GetOrderByIdAsync(order.Id)
+            ?? throw new InvalidOperationException($"Order {order.Id} missing");
+
+            CustomerProfile customer = await _customers.ReadProfileAsync(fresh.CustomerId);
+            string path = await _invoices.WriteInvoiceAsync(fresh, customer);
+            Console.WriteLine($"Wrote {path}");
     }
 }

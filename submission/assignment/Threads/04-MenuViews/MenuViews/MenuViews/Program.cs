@@ -8,10 +8,10 @@ int expected = threads * viewsPerThread;
 Thread[] workers = new Thread[threads];
 for (int t = 0; t < threads; t++)
 {
-    workers[t] = new Thread(() =>
+    workers[t] = new Thread(async () =>
     {
         for (int i = 0; i < viewsPerThread; i++)
-            counter.RegisterView();
+            await counter.RegisterView();
     });
     workers[t].Start();
 }

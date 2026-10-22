@@ -6,7 +6,7 @@ Thread[] customers = new Thread[40];
 for (int i = 0; i < customers.Length; i++)
 {
     string name = $"Customer-{i + 1:00}";
-    customers[i] = new Thread(() => booking.Book(name));
+    customers[i] = new Thread(async () => await booking.Book(name));
     customers[i].Start();
 }
 

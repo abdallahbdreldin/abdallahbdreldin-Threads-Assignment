@@ -2,18 +2,23 @@ namespace TableBooking;
 
 public sealed class FridayNightBooking
 {
+    private readonly object _lock = new object();
     public int TablesLeft { get; private set; } = 5;
     public int Booked { get; private set; }
 
-    public void Book(string customerName)
+    public async Task Book(string customerName)
     {
-        if (TablesLeft <= 0)
-            return;
+        lock (_lock)
+        {
 
-        Thread.Sleep(20);
+            if (TablesLeft <= 0)
+                return;
 
-        TablesLeft--;
-        Booked++;
-        Console.WriteLine($"{customerName} booked a table. Left={TablesLeft}");
+            Task.Delay(20);
+
+            TablesLeft--;
+            Booked++;
+            Console.WriteLine($"{customerName} booked a table. Left={TablesLeft}");
+        }
     }
 }
