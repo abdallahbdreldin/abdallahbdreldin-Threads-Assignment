@@ -8,13 +8,13 @@ namespace OrderSystem
         {
             if (!TryReadCancelAfter(args, out int? cancelAfterMs))
             {
-                Console.Error.WriteLine("Usage: dotnet run -- [phase1] [--cancel-after <ms>]");
+                Console.Error.WriteLine("Usage: dotnet run -- [phase1|phase2] [--cancel-after <ms>]");
                 return 1;
             }
 
             if (HasUnsupportedArguments(args))
             {
-                Console.Error.WriteLine("Only phase1 is implemented in this project state.");
+                Console.Error.WriteLine("Only phase1 and phase2 are implemented in this project state.");
                 return 1;
             }
 
@@ -31,8 +31,19 @@ namespace OrderSystem
 
             try
             {
-                var runner = new Phase1Runner(new JsonFileStore());
-                await runner.RunAsync(cts.Token);
+                var jsonFileStore = new JsonFileStore();
+                string phase = args.FirstOrDefault(argument => argument is "phase1" or "phase2") ?? "phase1";
+
+                if (phase == "phase2")
+                {
+                    var runner = new Phase2Runner(jsonFileStore);
+                    await runner.RunAsync(cts.Token);
+                }
+                else
+                {
+                    var runner = new Phase1Runner(jsonFileStore);
+                    await runner.RunAsync(cts.Token);
+                }
                 return 0;
             }
             finally
@@ -62,7 +73,7 @@ namespace OrderSystem
             bool phaseWasSpecified = false;
             for (int i = 0; i < args.Length; i++)
             {
-                if (args[i] == "phase1" && !phaseWasSpecified)
+                if ((args[i] is "phase1" or "phase2") && !phaseWasSpecified)
                 {
                     phaseWasSpecified = true;
                     continue;

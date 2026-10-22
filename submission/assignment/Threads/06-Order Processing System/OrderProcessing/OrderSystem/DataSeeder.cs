@@ -14,7 +14,9 @@ namespace OrderSystem
         public async Task ResetAsync(CancellationToken ct = default)
         {
             ct.ThrowIfCancellationRequested();
+
             if (Directory.Exists(_store.DataDirectory)) Directory.Delete(_store.DataDirectory, recursive: true);
+
             Directory.CreateDirectory(_store.DataDirectory);
 
             var files = CreateSeedData();
