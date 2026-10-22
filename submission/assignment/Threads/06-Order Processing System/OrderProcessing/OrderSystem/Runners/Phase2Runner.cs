@@ -73,13 +73,15 @@ namespace OrderSystem.Runners
             await _seeder.ResetAsync(ct);
             await _pricingComparisonDemo.RunAsync(ct);
 
-            List<Order> incomingOrders = await _incomingOrderRepository.GetAllAsync(ct);
-            List<Task> validationTasks = incomingOrders
+            var incomingOrders = await _incomingOrderRepository.GetAllAsync(ct);
+
+            var validationTasks = incomingOrders
                 .Select(order => _orderValidator.ValidateOrderAsync(order, ct))
                 .ToList();
+
             await Task.WhenAll(validationTasks);
 
-            List<Order> validatedOrders = await _orderRepository.GetByStatusAsync(OrderStatus.Validated, ct);
+            var validatedOrders = await _orderRepository.GetByStatusAsync(OrderStatus.Validated, ct);
             var orderTasks = new List<(Order Order, Task<bool> Task)>(validatedOrders.Count);
             var stopwatch = Stopwatch.StartNew();
 
@@ -115,12 +117,14 @@ namespace OrderSystem.Runners
                 Console.WriteLine($"Order #{order.Id} final task status: {task.Status}");
             Console.WriteLine($"Concurrent order processing time: {stopwatch.Elapsed.TotalSeconds:F2} seconds");
 
-            List<Order> savedOrders = await _orderRepository.GetAllAsync(ct);
+            var savedOrders = await _orderRepository.GetAllAsync(ct);
+
             Console.WriteLine($"orders.json contains {savedOrders.Count} records (expected 20).");
+
             if (savedOrders.Count != 20)
                 throw new InvalidOperationException($"Expected 20 saved orders, found {savedOrders.Count}.");
 
-            Task<Report> reportTask = _reportGenerator.GenerateAsync(ct);
+            var reportTask = _reportGenerator.GenerateAsync(ct);
             Console.WriteLine("Generating report...");
             Report report = await reportTask;
             PrintReport(report);

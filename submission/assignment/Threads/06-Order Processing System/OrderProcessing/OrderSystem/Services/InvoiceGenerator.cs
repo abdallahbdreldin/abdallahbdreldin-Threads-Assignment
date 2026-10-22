@@ -24,6 +24,7 @@ namespace OrderSystem.Services
             Directory.CreateDirectory(invoiceDirectory);
 
             string invoicePath = Path.Combine(invoiceDirectory, $"invoice_{order.Id}.txt");
+
             string invoice =
                 $"Invoice for Order #{order.Id}{Environment.NewLine}" +
                 $"Customer: {order.CustomerId}{Environment.NewLine}" +

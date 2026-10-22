@@ -88,7 +88,8 @@ the method suspended at await and the thread that was executing the method can r
  Task.Delay doesn't use the thread while waiting , when await it the method suspended , allowing the thread to do another work 
 
 3) Result or Wait() block the current thread unitl the task completes
-      
+
+      
          public static void BlockingDemo()
         {
             Task task = Task.Delay(2000);
