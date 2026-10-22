@@ -1,5 +1,6 @@
 using OrderSystem.Interfaces.IJsonFile;
 using OrderSystem.Interfaces.IRepositories;
+using OrderSystem.Exceptions;
 using OrderSystem.Logs;
 using OrderSystem.Models;
 
@@ -8,16 +9,24 @@ namespace OrderSystem.Repositories
     public sealed class OrderRepository : IOrderRepository
     {
         private readonly IJsonFileStore _jsonFileStore;
+        private readonly HashSet<int> _failSaveForOrderIds;
 
-        public OrderRepository(IJsonFileStore jsonFileStore)
+        public OrderRepository(IJsonFileStore jsonFileStore, IEnumerable<int>? failSaveForOrderIds = null)
         {
             _jsonFileStore = jsonFileStore ?? throw new ArgumentNullException(nameof(jsonFileStore));
+            _failSaveForOrderIds = failSaveForOrderIds?.ToHashSet() ?? new HashSet<int>();
         }
 
         public async Task SaveAsync(Order order, CancellationToken ct)
         {
             ArgumentNullException.ThrowIfNull(order);
             await RepositoryLatency.BeginWriteAsync(nameof(OrderRepository), $"Saving Order #{order.Id}", ct);
+
+            if (order.Status == OrderStatus.Completed && _failSaveForOrderIds.Contains(order.Id))
+            {
+                await RepositoryLatency.CommitAsync(nameof(OrderRepository), ct);
+                throw new DatabaseWriteException("Connection lost during commit");
+            }
 
             await _jsonFileStore.UpdateAsync<List<Order>>(DataFiles.Orders, orders =>
             {

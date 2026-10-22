@@ -111,3 +111,16 @@ the method suspended at await and the thread that was executing the method can r
 8) the unprotected stock reservation caused overselling because there was individual lock over the file , lock for read and lock for write.
 
     solved by creating a lock through the while read,update and write operation using UpdateAsync method .
+
+
+## Phase 2 questions
+
+1) not neccessary , it just allow threads to do other work during the operation is waiting for response.
+
+2) because the thread don't need to be blocked during waiting for response , so the application can handle many requests concurrently.
+
+3) the application will handle the requests sequentially , so it takes huge time to process.
+
+4) because there is no need to occupy the threads with just waiting calling database respone , async/await for I/O bound
+ allow threads to do other work until task finishes.
+

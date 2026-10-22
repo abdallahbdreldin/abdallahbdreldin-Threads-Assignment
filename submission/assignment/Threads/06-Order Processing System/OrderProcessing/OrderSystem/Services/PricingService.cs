@@ -32,10 +32,11 @@ namespace OrderSystem.Services
         {
             ArgumentNullException.ThrowIfNull(order);
             decimal subTotal = 0m;
+            List<Product> products = await _productRepository.GetAllAsync(ct);
 
             foreach (OrderItem item in order.Items)
             {
-                Product? product = await _productRepository.GetByIdAsync(item.ProductId, ct);
+                Product? product = products.FirstOrDefault(candidate => candidate.Id == item.ProductId);
                 if (product is null)
                     throw new InvalidOperationException($"Product #{item.ProductId} not found");
 
@@ -60,9 +61,9 @@ namespace OrderSystem.Services
             {
                 Coupon? coupon = await _couponRepository.GetByCodeAsync(order.CouponCode, ct);
                 if (coupon is null)
-                    throw new InvalidOperationException($"Coupon '{order.CouponCode}' does not exist");
+                    throw new InvalidCouponException($"Coupon '{order.CouponCode}' does not exist");
                 if (coupon.ExpiryDate < DateTime.Today)
-                    throw new InvalidOperationException($"Coupon '{order.CouponCode}' has expired");
+                    throw new InvalidCouponException($"Coupon '{order.CouponCode}' has expired");
 
                 couponPercent = coupon.DiscountPercent;
             }
@@ -116,6 +117,22 @@ namespace OrderSystem.Services
             order.SubTotal = await CalculateSubTotalAsync(order, ct);
             order.Discount = await GetDiscountAsync(order, ct);
             order.ShippingCost = await CalculateShippingCostAsync(order, ct);
+            order.TotalAmount = RoundMoney(order.SubTotal - order.Discount + order.ShippingCost);
+            return order.TotalAmount;
+        }
+
+        public async Task<decimal> CalculateTotalAsync(Order order, CancellationToken ct)
+        {
+            ArgumentNullException.ThrowIfNull(order);
+
+            order.SubTotal = await CalculateSubTotalAsync(order, ct);
+
+            Task<decimal> discountTask = GetDiscountAsync(order, ct);
+            Task<decimal> shippingTask = CalculateShippingCostAsync(order, ct);
+            decimal[] additionalCosts = await Task.WhenAll(discountTask, shippingTask);
+
+            order.Discount = additionalCosts[0];
+            order.ShippingCost = additionalCosts[1];
             order.TotalAmount = RoundMoney(order.SubTotal - order.Discount + order.ShippingCost);
             return order.TotalAmount;
         }

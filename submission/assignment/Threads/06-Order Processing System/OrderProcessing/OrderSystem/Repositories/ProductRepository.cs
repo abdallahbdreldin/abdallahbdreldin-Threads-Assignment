@@ -14,6 +14,15 @@ namespace OrderSystem.Repositories
             _jsonFileStore = jsonFileStore ?? throw new ArgumentNullException(nameof(jsonFileStore));
         }
 
+        public async Task<List<Product>> GetAllAsync(CancellationToken ct)
+        {
+            await RepositoryLatency.QueryAsync(nameof(ProductRepository), "query for all products", ct);
+
+            List<Product> products = await _jsonFileStore.ReadAsync<List<Product>>(DataFiles.Products, ct);
+            Log.Success($"{nameof(ProductRepository)} -> Loaded {products.Count} product(s)");
+            return products;
+        }
+
         public async Task<Product?> GetByIdAsync(int id, CancellationToken ct)
         {
             await RepositoryLatency.QueryAsync(nameof(ProductRepository), $"query for Product #{id}", ct);
